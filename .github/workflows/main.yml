@@ -1,0 +1,41 @@
+name: Tests
+
+on: [push]
+
+jobs:
+
+  tests:
+    name: >-
+      Ruby ${{ matrix.ruby }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        ruby:  [ '2.4.x', '2.5.x', '2.6.x', '2.7.x' ]
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up ${{ matrix.ruby }}
+      uses: actions/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby }}
+
+    - name: Cache gems
+      uses: actions/cache@v1
+      with:
+        path: /tmp/gems
+        key: ${{ runner.os }}-gem-${{ hashFiles('**/Gemfile.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-gem-
+
+    - name: bundle install
+      run: |
+        gem install bundler
+        bundle config --global path /tmp/gems
+        bundle install --jobs 4 --retry 3
+
+    - name: tests
+      run: |
+        bundle exec rake test
+      env:
+        TESTOPTS: -v
